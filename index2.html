@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>채용 공고 목록</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    .posting {
+      border: 1px solid #ccc;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+    }
+    .title {
+      font-weight: bold;
+      font-size: 18px;
+    }
+    .info {
+      margin-top: 5px;
+      color: #555;
+    }
+    #loading {
+      font-size: 16px;
+      color: #999;
+    }
+    #error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <h1>채용 공고 목록</h1>
+  <div id="loading">로딩 중...</div>
+  <div id="error"></div>
+  <div id="posting-list"></div>
+
+  <script>
+    const filter = {
+      selectedLocation: {},
+      selectedGender: [],
+      selectedWorkType: [],
+      selectedWorkTime: [],
+      selectedWeekendDuty: [],
+      selectedSalary: [],
+      selectedWelfare: [],
+      selectedQualification: [],
+      selectedPreference: [],
+      selectedMaxClassFee: -2,
+      flexibleOption: false, 
+    }
+
+    function getQueryParam(name) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get(name);
+    }
+
+    function parseLocationParam(param) {
+      const locationObj = {};
+      if (!param) return locationObj;
+
+      const cityParts = decodeURIComponent(param).split('|');
+      cityParts.forEach(part => {
+        const [city, districts] = part.split(':');
+        if (city && districts) {
+          locationObj[city] = districts.split(',');
+        }
+      });
+      return locationObj;
+    }
+
+    // 페이지 로드 시 쿼리 파라미터로 location 설정
+    const locationParam = getQueryParam('location');
+    filter.selectedLocation = parseLocationParam(locationParam);
+
+    const page = 1;
+    const pageSize = 20;
+    const API_URL = `https://oasisapp2025.site/recruitment/selected?page=${page}&limit=${pageSize}`;
+
+    const loadingEl = document.getElementById('loading');
+    const errorEl = document.getElementById('error');
+    const listEl = document.getElementById('posting-list');
+
+    async function getAllPostings(page, pageSize) {
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(filter)
+        });
+        if (!response.ok) throw new Error('API 요청 실패');
+        return await response.json();
+      } catch (error) {
+        throw error;
+      }
+    }
+
+    function renderPostings(postings) {
+      listEl.innerHTML = ''; // 기존 목록 초기화
+      if (postings.length === 0) {
+        listEl.innerHTML = '<p>공고가 없습니다.</p>';
+        return;
+      }
+
+      postings.forEach(posting => {
+        const div = document.createElement('div');
+        div.className = 'posting';
+        div.innerHTML = `
+          <div class="title">${posting.centerName}</div>
+          <div class="info">근무 형태: ${posting.workType}</div>
+          <div class="info">근무 시간: ${posting.workTime}</div>
+        `;
+
+        // 클릭 시 index3.html로 이동
+        div.addEventListener('click', () => {
+          window.location.href = `index3.html?postingId=${posting.id}`;
+        });
+
+        listEl.appendChild(div);
+      });
+    }
+
+    // 초기 실행
+    getAllPostings(page, pageSize)
+      .then(data => {
+        loadingEl.style.display = 'none';
+        const postings = data?.data?.recruitmentList || [];
+        renderPostings(postings);
+      })
+      .catch(error => {
+        loadingEl.style.display = 'none';
+        errorEl.textContent = '공고 데이터를 불러오지 못했습니다.';
+        console.error(error);
+      });
+  </script>
+</body>
+</html>

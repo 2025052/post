@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>공고 상세 페이지</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; margin: 0; }
+    .container { max-width: 600px; margin: auto; padding-bottom: 50px; }
+    .title { font-size: 24px; font-weight: bold; margin-bottom: 8px; }
+    .date { color: #555; margin-bottom: 16px; }
+    .tabs { display: flex; border-bottom: 1px solid #ccc; margin-bottom: 16px; }
+    .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; }
+    .tab.active { border-bottom: 2px solid #000; font-weight: bold; }
+    .section { margin-bottom: 40px; }
+    .bottom-buttons {
+      position: fixed;
+      bottom: 20px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 60px; 
+    }
+    .btn {
+      padding: 16px 28px;   
+      font-size: 18px;             
+      background-color: #2b8ced;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 8px; 
+      font-weight: bold;
+    }
+    .btn:disabled { background-color: #ccc; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="postingTitle" class="title">로딩 중...</div>
+    <div id="postingDate" class="date"></div>
+
+    <div class="tabs">
+      <div id="tabWork" class="tab active">근무조건</div>
+      <div id="tabDesc" class="tab">상세요강</div>
+    </div>
+
+    <div id="workConditions" class="section">
+      
+      <h3>급여조건</h3>
+      <p id="salary"></p>
+      <p id="welfare"></p>
+      <h3>근무지역</h3>
+      <p id="address"></p>
+      <p id="map" style="color: blue; cursor: pointer; text-decoration: underline;"></p>
+      <h3>근무조건</h3>
+      <p id="workType"></p>
+      <p id="workTime"></p>
+      <h3>지원조건</h3>
+      <p id="gender"></p>
+      <p id="qualification"></p>
+      <p id="preference"></p>
+    </div>
+
+    <div id="description" class="section">
+      <h3>상세요강</h3>
+      <p id="descText">상세요강이 없습니다.</p>
+    </div>
+  </div>
+
+  <div class="bottom-buttons">
+    <button class="btn" id="linkBtn">사이트 바로가기</button>
+  </div>
+
+  <script>
+    const query = new URLSearchParams(window.location.search);
+    const postingId = query.get('postingId');
+    console.log(postingId)
+
+    const API_URL = 'https://oasisapp2025.site/recruitment/getOne';
+
+    async function getDetailPosting(postingId) {
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ id: Number(postingId) })
+        });
+        if (!response.ok) throw new Error('API 요청 실패');
+        return await response.json();
+      } catch (error) {
+        console.error('공고 불러오기 실패:', error);
+        return null;
+      }
+    }
+
+    function formatRange(label, arr) {
+      if (!Array.isArray(arr) || arr.length !== 2) return '';
+      return `${label}: ${arr[0].toLocaleString()} ~ ${arr[1].toLocaleString()}원`;
+    }
+
+    function getMaxClassFeeLabel(value) {
+      if (value === -1) return '최대 수업료: 채용 공고 참고';
+      if (value === -2) return '최대 수업료: 명시 안 됨';
+      return `최대 수업료: ${value.toLocaleString()}%`;
+    }
+
+    // 페이지 로드 시 실행
+    window.addEventListener('DOMContentLoaded', async () => {
+      const data = await getDetailPosting(postingId);
+      const posting = data?.data;
+
+      if (!posting) {
+        document.querySelector('.container').innerHTML = '<p>공고를 찾을 수 없습니다.</p>';
+        document.querySelector('.bottom-buttons').style.display = 'none';
+        return;
+      }
+
+      document.getElementById('postingTitle').textContent = posting.centerName;
+      document.getElementById('postingDate').textContent = `${posting.date} ~`;
+
+      // 급여조건
+      const salaryEl = document.getElementById('salary');
+      const salaryLines = [];
+
+      if (posting.maxClassFee !== undefined) {
+        salaryLines.push(`<p>${getMaxClassFeeLabel(posting.maxClassFee)}</p>`);
+      }
+      if (posting.basePay?.length === 2) salaryLines.push(`<p>${formatRange('기본급', posting.basePay)}</p>`);
+      if (posting.classPay?.length === 2) salaryLines.push(`<p>${formatRange('수업단가', posting.classPay)}</p>`);
+      if (posting.classFee?.length === 2) salaryLines.push(`<p>수업료: ${posting.classFee[0]}% ~ ${posting.classFee[1]}%</p>`);
+      if (posting.monthly?.length === 2) salaryLines.push(`<p>${formatRange('월급', posting.monthly)}</p>`);
+      if (posting.hourly?.length === 2) salaryLines.push(`<p>${formatRange('시급', posting.hourly)}</p>`);
+
+      salaryEl.innerHTML = salaryLines.join('') || '<p>급여조건이 없습니다.</p>';
+
+      document.getElementById('welfare').textContent = `복리후생: ${posting.welfare}`;
+
+      // 근무지역 및 지도
+      document.getElementById('address').textContent = posting.address;
+      const mapEl = document.getElementById('map');
+      if (posting.map) {
+        mapEl.textContent = '지도 보기';
+        mapEl.addEventListener('click', () => window.open(posting.map, '_blank'));
+      } else {
+        mapEl.style.display = 'none';
+      }
+
+      // 근무조건
+      document.getElementById('workType').textContent = `근무형태: ${posting.workType}`;
+      document.getElementById('workTime').textContent = `근무시간: ${posting.workTime}`;
+
+      // 지원조건
+      document.getElementById('gender').textContent = `성별: ${posting.gender}`;
+      document.getElementById('qualification').textContent = `지원자격: ${posting.qualification}`;
+      document.getElementById('preference').textContent = `우대사항: ${posting.preference}`;
+
+      // 사이트 정보 파악
+      const siteKeys = posting.site ? Object.keys(posting.site) : [];
+      const isDirect = siteKeys.length > 0 && siteKeys[0] === '빌리지';
+
+      // 사이트 바로가기 버튼 조건
+      const linkBtn = document.getElementById('linkBtn');
+      if (isDirect) {
+        linkBtn.style.display = 'none'; // 직접 등록이면 숨김
+      } else {
+        const firstSiteKey = siteKeys[0];
+        const firstSiteUrls = posting.site[firstSiteKey];
+        linkBtn.addEventListener('click', () => {
+          if (firstSiteUrls && firstSiteUrls[0]) {
+            window.open(firstSiteUrls[0], '_blank');
+          } else {
+            alert('사이트 정보가 없습니다.');
+          }
+        });
+      }
+
+      // 상세요강 표시 조건
+      const descSection = document.getElementById('description');
+
+      if (!isDirect) {
+        descSection.style.display = 'none';
+      } else {
+        document.getElementById('descText').textContent = posting.description || '상세요강이 없습니다.';
+      }
+
+      // 탭 기능
+      const tabDesc = document.getElementById('tabDesc');
+      const tabWork = document.getElementById('tabWork');
+      const sectionWork = document.getElementById('workConditions');
+
+      if (!isDirect) {
+        descSection.remove();       // 설명 섹션 제거
+        tabDesc.remove();           // 설명 탭 제거
+        tabWork.classList.add('active');
+      } else {
+        document.getElementById('descText').textContent = posting.description || '상세요강이 없습니다.';
+      }
+
+      // 탭 기능
+      tabWork.addEventListener('click', () => {
+        tabWork.classList.add('active');
+        tabDesc?.classList.remove('active');
+        sectionWork.scrollIntoView({ behavior: 'smooth' });
+      });
+
+      tabDesc?.addEventListener('click', () => {
+        tabDesc.classList.add('active');
+        tabWork.classList.remove('active');
+        descSection.scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+
+  </script>
+</body>
+</html>

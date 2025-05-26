@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>트레이너 맞춤공고</title>
+	<style>
+   body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+
+    h2 {
+      margin-bottom: 10px;
+    }
+
+    .container {
+      display: flex;
+      gap: 20px;
+      max-width: 100%;
+      overflow-x: auto;
+      flex-wrap: nowrap;
+    }
+
+    .list {
+      border: 1px solid #ccc;
+      width: 150px;
+      height: 300px;
+      overflow-y: auto;
+      border-radius: 8px;
+      flex-shrink: 0; /* 줄어들지 않도록 고정 */
+    }
+
+    .list-item {
+      padding: 10px;
+      cursor: pointer;
+      border-bottom: 1px solid #eee;
+    }
+
+    .list-item.selected {
+      background-color: #e6f5e9;
+      font-weight: bold;
+    }
+
+    .selected-container {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      max-width: 800px;
+    }
+
+    .selected-badge {
+      background-color: #f0f0f0;
+      padding: 6px 12px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .remove-btn {
+      cursor: pointer;
+      color: #bdbdbd;
+      font-weight: bold;
+    }
+
+    #cityList {
+      width: 80px;
+    }
+
+    #confirmBtn {
+      margin-top: 30px;
+      padding: 14px 28px;
+      background-color: #2b8ced;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transition: all 0.2s ease;
+    }
+
+    #confirmBtn:hover {
+      background-color: #186dc3;
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+<body>
+  <h2>희망 근무 지역</h2>
+  <div class="container">
+    <div>
+      <strong>시·도</strong>
+      <div class="list" id="cityList"></div>
+    </div>
+    <div>
+      <strong>시·군·구</strong>
+      <div class="list" id="districtList"></div>
+    </div>
+  </div>
+
+  <div class="selected-container" id="selectedContainer"></div>
+	<button id="confirmBtn">확인</button>
+
+  <script>
+    const LOCATION = {
+      서울: [
+				'서울 전체', '강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', 
+				'동대문구', '동작구', '마포구', '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구', 
+				'용산구', '은평구', '종로구', '중구', '중랑구'
+			],
+			경기: [
+				'경기 전체', '가평군', '고양시 덕양구', '고양시 일산동구', '고양시 일산서구', '과천시', '광명시',
+				'광주시', '구리시', '군포시', '김포시', '남양주시', '동두천시', '부천시', '성남시 분당구', '성남시 수정구',
+				'성남시 중원구', '수원시 권선구', '수원시 영통구', '수원시 장안구', '수원시 팔달구', '시흥시', '안산시 단원구',
+				'안산시 상록구', '안성시', '안양시 동안구', '안양시 만안구', '양주시', '양평군', '여주시', '연천군', '오산시',
+				'용인시 기흥구', '용인시 수지구', '용인시 처인구', '의왕시', '의정부시', '이천시', '파주시', '평택시', '포천시',
+				'하남시', '화성시'
+			],
+    };
+
+    let selectedCity = '';
+    const selectedLocation = {};
+
+    const cityList = document.getElementById('cityList');
+    const districtList = document.getElementById('districtList');
+    const selectedContainer = document.getElementById('selectedContainer');
+
+    function renderCities() {
+      cityList.innerHTML = '';
+      for (const city in LOCATION) {
+        const div = document.createElement('div');
+        div.className = 'list-item' + (selectedCity === city ? ' selected' : '');
+        div.textContent = city;
+        div.onclick = () => {
+          selectedCity = city;
+          renderCities();
+          renderDistricts();
+        };
+        cityList.appendChild(div);
+      }
+    }
+
+    function renderDistricts() {
+      districtList.innerHTML = '';
+      if (!selectedCity) return;
+
+      for (const district of LOCATION[selectedCity]) {
+        const isSelected = (selectedLocation[selectedCity] || []).includes(district);
+        const div = document.createElement('div');
+        div.className = 'list-item' + (isSelected ? ' selected' : '');
+        div.textContent = district;
+        div.onclick = () => {
+          const fullText = selectedCity + ' 전체';
+
+					if (district === fullText) {
+						// ex: '서울 전체' 클릭 시 → '서울' 내 나머지 항목들 해제하고 전체만 선택
+						selectedLocation[selectedCity] = [fullText];
+					} else {
+						if (!selectedLocation[selectedCity]) {
+							selectedLocation[selectedCity] = [];
+						}
+
+						// "전체"가 선택되어 있으면 먼저 해제
+						selectedLocation[selectedCity] = selectedLocation[selectedCity].filter(d => d !== fullText);
+
+						if (isSelected) {
+							// 이미 선택된 항목이면 해제
+							selectedLocation[selectedCity] = selectedLocation[selectedCity].filter(d => d !== district);
+							if (selectedLocation[selectedCity].length === 0) delete selectedLocation[selectedCity];
+						} else {
+							// 새로 선택
+							selectedLocation[selectedCity].push(district);
+						}
+					}
+          renderDistricts();
+          renderSelected();
+        };
+        districtList.appendChild(div);
+      }
+    }
+
+    function renderSelected() {
+      selectedContainer.innerHTML = '';
+
+      for (const city in selectedLocation) {
+        for (const district of selectedLocation[city]) {
+          const badge = document.createElement('div');
+          badge.className = 'selected-badge';
+
+          const span = document.createElement('span');
+          span.textContent = district;
+
+          const remove = document.createElement('span');
+          remove.className = 'remove-btn';
+          remove.textContent = '✖';
+          remove.onclick = () => {
+            selectedLocation[city] = selectedLocation[city].filter(d => d !== district);
+            if (selectedLocation[city].length === 0) delete selectedLocation[city];
+            renderDistricts();
+            renderSelected();
+          };
+
+          badge.appendChild(span);
+          badge.appendChild(remove);
+          selectedContainer.appendChild(badge);
+        }
+      }
+    }
+
+    // 초기 렌더링
+    renderCities();
+
+		// 확인 버튼 클릭 시 선택된 지역 정보를 쿼리스트링으로 넘기기
+		document.getElementById('confirmBtn').onclick = () => {
+			// 선택된 지역 문자열 만들기 (예: 서울:강남구,경기:성남시)
+			let locationParam = [];
+			for (const city in selectedLocation) {
+				locationParam.push(city + ':' + selectedLocation[city].join(','));
+			}
+			const query = encodeURIComponent(locationParam.join('|')); // 구분자 '|'
+			// index2.html로 이동, 쿼리스트링에 location 포함
+			window.location.href = `index2.html?location=${query}`;
+		};
+  </script>
+</body>
+</html>
