@@ -112,7 +112,10 @@
   </div>
 
   <div class="selected-container" id="selectedContainer"></div>
-    <button id="confirmBtn" onclick="gtag('event', 'sign_up');">확인</button>
+    <button id="confirmBtn" onclick="gtag('event', 'sign_up', {
+      method: 'kakao'
+    });">확인
+    </button>
   <script>
     const LOCATION = {
       서울: [
