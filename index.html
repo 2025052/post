@@ -114,36 +114,40 @@
 
   <div class="selected-container" id="selectedContainer"></div>
     <button id="confirmBtn">확인</button>
-
   <script>
-    $(document).ready(function () {
-    console.log("jQuery 준비 완료");
+  // 버튼 클릭 시 Amplitude 이벤트 전송
+  document.addEventListener("DOMContentLoaded", function () {
+    const confirmBtn = document.getElementById("confirmBtn");
 
-    // Amplitude 이벤트 보내기
-    $.ajax({
-      url: 'https://api2.amplitude.com/2/httpapi',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': '*/*'
-      },
-      data: JSON.stringify({
-        "api_key": "3f40163d0208c7f1a70912af90c671c4",
-        "events": [{
-          "device_id": "test-device-id",
-          "event_type": "sign_up"
-        }]
-      }),
-      success: function () {
-        console.log("Amplitude 이벤트 전송 완료!");
-      },
-      error: function () {
-        console.error("Amplitude 이벤트 전송 실패");
-      }
+    confirmBtn.addEventListener("click", function () {
+      fetch("https://api2.amplitude.com/2/httpapi", {
+	method: "POST",
+	headers: {
+	  "Content-Type": "application/json",
+	  "Accept": "*/*"
+	},
+	body: JSON.stringify({
+	  api_key: "3f40163d0208c7f1a70912af90c671c4",
+	  events: [
+	    {
+	      device_id: "test-device-id",
+	      event_type: "click_confirm_button"
+	    }
+	  ]
+	})
+      })
+      .then(response => {
+	if (response.ok) {
+	  console.log("✅ Amplitude 이벤트 전송 완료!");
+	} else {
+	  console.error("❌ Amplitude 응답 오류:", response.status);
+	}
+      })
+      .catch(error => {
+	console.error("❌ Amplitude 네트워크 오류:", error);
+      });
     });
   });
-  </script>
-  <script>
     const LOCATION = {
       서울: [
 				'서울 전체', '강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', 
