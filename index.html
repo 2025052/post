@@ -116,29 +116,32 @@
     <button id="confirmBtn">확인</button>
 
   <script>
-    $('#confirmBtn').on('click', function () {
-      $.ajax({
-        url: 'https://api2.amplitude.com/2/httpapi',
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': '*/*'
-        },
-        data: JSON.stringify({
-          "api_key": "3f40163d0208c7f1a70912af90c671c4",
-          "events": [{
-            "device_id": "my-test-device-id",
-            "event_type": "Sign up"
-          }]
-        }),
-        success: function () {
-          console.log("이벤트 전송됨!");
-        },
-        error: function () {
-          console.error("전송 실패!");
-        }
-      });
+    $(document).ready(function () {
+    console.log("jQuery 준비 완료");
+
+    // Amplitude 이벤트 보내기
+    $.ajax({
+      url: 'https://api2.amplitude.com/2/httpapi',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': '*/*'
+      },
+      data: JSON.stringify({
+        "api_key": "3f40163d0208c7f1a70912af90c671c4",
+        "events": [{
+          "device_id": "test-device-id",
+          "event_type": "sign_up"
+        }]
+      }),
+      success: function () {
+        console.log("Amplitude 이벤트 전송 완료!");
+      },
+      error: function () {
+        console.error("Amplitude 이벤트 전송 실패");
+      }
     });
+  });
   </script>
   <script>
     const LOCATION = {
